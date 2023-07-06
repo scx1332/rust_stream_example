@@ -62,7 +62,7 @@ async fn main() {
             //tx is dropped here and rx will return immediately None
         }
         .await;
-        log::info!("Done sending events, rx is already dropped");
+        log::info!("Event emitter task ended. rx dropped.");
     });
 
     let stream1 = create_stream_from_channel(rx);
@@ -83,6 +83,7 @@ async fn main() {
                 }
             }
         }
+        log::info!("Consumer task 1 ended");
     });
 
 
@@ -100,12 +101,13 @@ async fn main() {
             .await
         {
             Ok(_) => {
-                log::info!("Stream2 ended");
+                log::info!("[Stream2] ended");
             }
             Err(err) => {
-                log::error!("Stream2 ended with error: {}", err);
+                log::error!("[Stream2] ended with error: {}", err);
             }
         }
+        log::info!("Consumer task 2 ended");
     });
 
     //this is not needed, but it will show that task is finished
