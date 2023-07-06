@@ -1,0 +1,15 @@
+[package]
+name = "rust_stream_example"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+# In production code select features you need, full for playground
+tokio = { version = "1.28.2", features = ["rt-multi-thread", "macros", "sync", "time"] }
+futures = { version = "0.3.19" }
+anyhow = { version = "1.0.42" }
+log = "0.4.14"
+env_logger = "0.10.0"
+
