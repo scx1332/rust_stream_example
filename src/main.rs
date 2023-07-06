@@ -65,7 +65,7 @@ async fn main() {
 
     //consume stream in a imperative way
     //it's quite easy and straightforward
-    tokio::task::spawn(async move {
+    let consumer_task_1 = tokio::task::spawn(async move {
         futures::pin_mut!(stream);
         while let Some(item) = stream.next().await {
             match item {
@@ -86,7 +86,7 @@ async fn main() {
 
     //consume stream2 in a functional way
     //try for each is ending on first error, you can use for_each if you want to consume all items
-    tokio::task::spawn(async move {
+    let consumer_task_2 = tokio::task::spawn(async move {
         match stream2
             .try_for_each(|item| async move {
                 log::info!("[Stream2] Received: {}", item);
@@ -103,7 +103,18 @@ async fn main() {
         }
     });
 
+    //this is not needed, but it will show that task is finished
+    //if the program is stuck then probably logic of finishing task is flawed
     while !event_task.is_finished() {
+        log::debug!("Waiting for event task to finish");
+        sleep(Duration::from_secs(1)).await;
+    }
+    while !consumer_task_1.is_finished() {
+        log::debug!("Waiting for consumer task 1 to finish");
+        sleep(Duration::from_secs(1)).await;
+    }
+    while !consumer_task_2.is_finished() {
+        log::debug!("Waiting for consumer task 2 to finish");
         sleep(Duration::from_secs(1)).await;
     }
 }
