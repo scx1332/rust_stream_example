@@ -1,6 +1,6 @@
 use std::env;
 use anyhow::anyhow;
-use futures::{stream, TryStreamExt};
+use futures::{FutureExt, stream, TryStreamExt};
 use std::time::Duration;
 use tokio::sync::broadcast;
 use tokio::time::sleep;
@@ -89,6 +89,13 @@ async fn main() {
 
     //map stream2 to a new stream stream2
     let stream2 = stream2.map(|item| item.map(|item| item.replace("Event", "Modified event")));
+
+    let stream2 = stream2.then(|item| async move {
+        //do some async work here
+        //note that it will block the stream if you spent too much time here
+        tokio::time::sleep(Duration::from_millis(100)).await;
+        item
+    });
 
     //consume stream2 in a functional way
     //try for each is ending on first error, you can use for_each if you want to consume all items
