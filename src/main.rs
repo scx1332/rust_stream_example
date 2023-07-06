@@ -8,14 +8,16 @@ use tokio::time::sleep;
 use futures::stream::StreamExt;
 use tokio::sync::broadcast::Receiver;
 
+const MSG_ERROR_EVENT_STR: &str = "Dummy error event";
+
 fn create_stream_from_channel(
     rx: Receiver<String>,
 ) -> impl futures::Stream<Item = Result<String, anyhow::Error>> {
     stream::unfold(rx, |mut rx_int| async move {
         let next_state = match rx_int.recv().await {
             Ok(event) => {
-                if event == "Error" {
-                    return Some((Err(anyhow!("Received error event")), rx_int));
+                if event == MSG_ERROR_EVENT_STR {
+                    return Some((Err(anyhow!("Received error event: {}", event)), rx_int));
                 }
                 Some(event)
             }
@@ -31,15 +33,17 @@ async fn main() {
     env::set_var("RUST_LOG", env::var("RUST_LOG").unwrap_or("info".into()));
     env_logger::init();
 
+    const NUMBER_OF_EVENTS: u64 = 10;
+    const EMIT_ERROR_ON_EVENT_NO: u64 = 5;
+
     let (tx, rx) = broadcast::channel(10);
     let rx2 = tx.subscribe();
     let event_task = tokio::task::spawn(async move {
         async move {
             //fancy method of capturing tx
-            for event_no in 0..10 {
-                sleep(Duration::from_secs(1)).await;
-                if event_no == 5 {
-                    if let Err(err) = tx.send("Error".into()) {
+            for event_no in 0..NUMBER_OF_EVENTS {
+                if event_no == EMIT_ERROR_ON_EVENT_NO {
+                    if let Err(err) = tx.send(MSG_ERROR_EVENT_STR.to_string()) {
                         log::warn!(
                             "Error sending event, probably all receivers closed: {}",
                             err
@@ -53,6 +57,7 @@ async fn main() {
                     );
                     break;
                 }
+                sleep(Duration::from_secs(1)).await;
             }
             //tx is dropped here and rx will return immediately None
         }
@@ -60,14 +65,14 @@ async fn main() {
         log::info!("Done sending events, rx is already dropped");
     });
 
-    let stream = create_stream_from_channel(rx);
+    let stream1 = create_stream_from_channel(rx);
     let stream2 = create_stream_from_channel(rx2);
 
     //consume stream in a imperative way
     //it's quite easy and straightforward
     let consumer_task_1 = tokio::task::spawn(async move {
-        futures::pin_mut!(stream);
-        while let Some(item) = stream.next().await {
+        futures::pin_mut!(stream1);
+        while let Some(item) = stream1.next().await {
             match item {
                 Ok(item) => {
                     log::info!("[Stream1] Received: {}", item);
