@@ -1,6 +1,6 @@
 use std::env;
 use anyhow::anyhow;
-use futures::{future, stream, TryStreamExt};
+use futures::{stream, TryStreamExt};
 use std::time::Duration;
 use tokio::sync::broadcast;
 use tokio::time::sleep;
@@ -64,15 +64,16 @@ async fn main() {
     let stream2 = create_stream_from_channel(rx2);
 
     //consume stream in a imperative way
+    //it's quite easy and straightforward
     tokio::task::spawn(async move {
         futures::pin_mut!(stream);
         while let Some(item) = stream.next().await {
             match item {
                 Ok(item) => {
-                    log::info!("Received: {}", item);
+                    log::info!("[Stream1] Received: {}", item);
                 }
                 Err(err) => {
-                    log::error!("Error: {}", err);
+                    log::error!("[Stream1] Error: {}", err);
                     break;
                 }
             }
@@ -84,10 +85,11 @@ async fn main() {
     let stream2 = stream2.map(|item| item.map(|item| item.replace("Event", "Modified event")));
 
     //consume stream2 in a functional way
+    //try for each is ending on first error, you can use for_each if you want to consume all items
     tokio::task::spawn(async move {
         match stream2
             .try_for_each(|item| async move {
-                log::info!("Received: {}", item);
+                log::info!("[Stream2] Received: {}", item);
                 Ok(())
             })
             .await
