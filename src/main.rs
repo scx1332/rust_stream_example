@@ -1,6 +1,6 @@
 use std::env;
 use anyhow::anyhow;
-use futures::{FutureExt, stream, TryStreamExt};
+use futures::{stream, TryStreamExt};
 use std::time::Duration;
 use tokio::sync::broadcast;
 use tokio::time::sleep;
